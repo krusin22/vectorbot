@@ -3,11 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>เกมฝึกเขียนโปรแกรม Direction Bot - สื่อการสอนวิทยาการคำนวณ</title>
-    <meta name="description" content="สื่อการสอนเกม Coding Bot ฝึกทักษะการแก้ปัญหา การคิดเป็นระบบ และการทำซ้ำ (Loop) สำหรับเด็กและนักเรียน เหมาะกับวิชาวิทยาการคำนวณ">
-    <meta name="keywords" content="สื่อการสอน coding, วิทยาการคำนวณ, เกมฝึกตรรกะ, เกมเขียนโปรแกรม, บล็อกคำสั่ง">
-    <meta property="og:title" content="สื่อการสอนเกม Coding Bot">
-    <meta property="og:description" content="ฝึกทักษะการคิดอย่างเป็นระบบผ่านเกมแก้ปัญหา">
+    
+    <title>Direction Bot - 20 Levels</title>
+    <meta name="description" content="สื่อการสอนเกม Coding Bot ฝึกทักษะการแก้ปัญหา และวิทยาการคำนวณ สำหรับนักเรียน">
     
     <style>
         :root {
@@ -199,7 +197,6 @@
     </div>
 
     <script>
-        // ฐานข้อมูลด่านทั้งหมด 20 ด่านแบบตรวจสอบความถูกต้องแล้ว
         const levelsData = [
             { map: ["11A"], start: {x:0, y:0, dir:1} }, 
             { map: ["110","01A"], start: {x:0, y:0, dir:1} }, 
@@ -214,15 +211,36 @@
             { map: ["1212B"], start: {x:0, y:0, dir:1} }, 
             { map: ["1100","0110","001A"], start: {x:0, y:0, dir:1} }, 
             { map: ["1221","0B0A"], start: {x:0, y:0, dir:1} }, 
-            { map: ["123","402","C21"], start: {x:0, y:0, dir:1} }, // ด่าน 14 ซ่อมบันไดแล้ว
-            { map: ["1200","0230","003C"], start: {x:0, y:0, dir:1} }, // ด่าน 15 ของแท้ มีปุ่มเปิดไฟแน่นอน!
-            { map: ["1111","0001","1111","1000","111A"], start: {x:0, y:0, dir:1} }, // ด่าน 16
-            { map: ["1210","0121","001B"], start: {x:0, y:0, dir:1} },                // ด่าน 17
-            { map: ["1234","0001","1112","0003","111B"], start: {x:0, y:0, dir:1} }, // ด่าน 18
-            { map: ["10001","20002","30003","4111A"], start: {x:0, y:0, dir:2} },    // ด่าน 19
-            { map: ["1200","0340","0012","000B"], start: {x:0, y:0, dir:1} }         // ด่าน 20
+            { map: ["123","402","C21"], start: {x:0, y:0, dir:1} }, 
+            { map: ["1200","0230","003C"], start: {x:0, y:0, dir:1} }, // ด่าน 15 ซ่อมเสร็จสมบูรณ์
+            { map: ["1111","0001","1111","1000","111A"], start: {x:0, y:0, dir:1} }, 
+            { map: ["1210","0121","001B"], start: {x:0, y:0, dir:1} },                
+            { map: ["1234","0001","1112","0003","111B"], start: {x:0, y:0, dir:1} }, 
+            { map: ["10001","20002","30003","4111A"], start: {x:0, y:0, dir:2} },    
+            { map: ["1200","0340","0012","000B"], start: {x:0, y:0, dir:1} }         
         ];
 
+        // ===================================================
+        // ⏱️ ระบบตรวจสอบเวลาล่าช้าอัตโนมัติ (4 ชั่วโมง)
+        // ===================================================
+        function checkSessionTimeout() {
+            const lastActive = localStorage.getItem('codingBotLastActive');
+            const now = Date.now();
+            const fourHoursInMs = 4 * 60 * 60 * 1000; // 4 ชั่วโมงในหน่วยมิลลิวินาที
+
+            if (lastActive && (now - parseInt(lastActive) > fourHoursInMs)) {
+                // หากเกิน 4 ชั่วโมง ให้ทำการล้างข้อมูลทั้งหมดในเครื่องทันที
+                localStorage.removeItem('codingBotMaxLevel');
+                localStorage.removeItem('codingBotSavedLevel');
+            }
+            // อัปเดตเวลาล่าสุดที่ผู้ใช้งานเปิดหรือเล่นเว็บ
+            localStorage.setItem('codingBotLastActive', now.toString());
+        }
+        
+        // รันฟังก์ชันตรวจสอบเวลาทันทีที่เปิดหน้าเว็บขึ้นมา
+        checkSessionTimeout();
+
+        // ดึงข้อมูลด่านหลังจากตรวจเรื่องเวลาเสร็จแล้ว
         let maxLevel = parseInt(localStorage.getItem('codingBotMaxLevel')) || 0;
         let currentLevel = parseInt(localStorage.getItem('codingBotSavedLevel')) || maxLevel;
         
@@ -234,6 +252,11 @@
 
         const cmdText = { 'forward': '⬆️ เดินหน้า', 'jump': '⏫ กระโดด', 'left': '↩️ เลี้ยวซ้าย', 'right': '↪️ เลี้ยวขวา', 'light': '💡 เปิดไฟ' };
         const robotIcons = ['▲', '▶', '▼', '◀'];
+
+        // อัปเดตเวลา Last Active ทุกครั้งที่นักเรียนกดสั่งการหรือเคลื่อนไหวในเกม
+        function updateActivity() {
+            localStorage.setItem('codingBotLastActive', Date.now().toString());
+        }
 
         function loadLevel(index) {
             currentLevel = index;
@@ -253,7 +276,7 @@
                     let char = data.map[y][x];
                     if (char === '0') row.push(0);
                     else if (char >= '1' && char <= '4') row.push(parseInt(char));
-                    else if (char >= 'A' && char <= 'E') { // รองรับความสูงเป้าหมายได้มากขึ้น
+                    else if (char >= 'A' && char <= 'E') {
                         let h = char.charCodeAt(0) - 64;
                         row.push(h);
                         targets.push({x, y});
@@ -267,6 +290,7 @@
 
         function changeLevel(step) {
             if (isRunning) return;
+            updateActivity();
             let next = currentLevel + step;
             if (next >= 0 && next <= maxLevel && next < levelsData.length) {
                 loadLevel(next);
@@ -279,6 +303,7 @@
                 maxLevel = 0;
                 localStorage.setItem('codingBotMaxLevel', 0);
                 localStorage.setItem('codingBotSavedLevel', 0);
+                updateActivity();
                 loadLevel(0);
             }
         }
@@ -295,7 +320,7 @@
                     
                     if (h === 0) cell.className = 'cell empty';
                     else {
-                        cell.className = `cell h${h >= 4 ? 4 : h}`; // จัดการเรื่อง CSS คลาสกรณีด่าน 19 สูงเกินชั้น 4
+                        cell.className = `cell h${h >= 4 ? 4 : h}`;
                         if (targets.some(t => t.x === x && t.y === y)) {
                             cell.classList.add('target');
                             if (isLit) cell.classList.add('lit');
@@ -316,12 +341,14 @@
 
         function addCmd(cmd) {
             if (isRunning) return;
+            updateActivity();
             program.push({ type: 'single', val: cmd });
             renderQueue();
         }
 
         function addRepeatCmd() {
             if (isRunning) return;
+            updateActivity();
             const cmd = document.getElementById('repeat-cmd').value;
             const count = parseInt(document.getElementById('repeat-count').value);
             program.push({ type: 'repeat', val: cmd, count: count });
@@ -330,6 +357,7 @@
 
         function delCmd(idx) {
             if (isRunning) return;
+            updateActivity();
             program.splice(idx, 1);
             renderQueue();
         }
@@ -363,6 +391,7 @@
         async function runProgram() {
             if (isRunning || program.length === 0) return;
             isRunning = true;
+            updateActivity();
             
             robot = { ...levelsData[currentLevel].start };
             isLit = false;

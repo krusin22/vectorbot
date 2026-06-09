@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <title>Direction Bot - 20 Levels</title>
+    <meta name="description" content="สื่อการสอนเกม Coding Bot ฝึกทักษะการแก้ปัญหา และวิทยาการคำนวณ สำหรับนักเรียน">
+    
+    <style>
+        :root {
+            --h1-color: #7a7a7a; --h1-shadow: #555;
+            --h2-color: #8c8c8c; --h2-shadow: #444;
+            --h3-color: #9e9e9e; --h3-shadow: #333;
+            --h4-color: #b0b0b0; --h4-shadow: #222;
+            
+            --cell-size: 50px;
+            --font-size-cell: 24px;
+            --bot-size: 30px;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #2c2c2c;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 15px;
+            box-sizing: border-box;
+        }
+
+        .header { 
+            display: flex; align-items: center; justify-content: center; 
+            gap: 15px; margin-bottom: 10px; width: 100%; max-width: 800px;
+        }
+        #level-title { margin: 0; color: #FACC15; font-size: clamp(20px, 5vw, 28px); text-shadow: 0 2px 4px rgba(0,0,0,0.3); text-align: center;}
+        
+        .container {
+            display: flex; gap: 20px; background-color: #3f3f3f;
+            padding: 20px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            align-items: flex-start;
+            width: 100%; max-width: 900px;
+            box-sizing: border-box;
+        }
+        
+        #board-container { 
+            padding: 20px 20px 40px 20px; background-color: #222; border-radius: 8px; 
+            display: flex; justify-content: center;
+            flex-shrink: 0;
+        }
+        #board { display: flex; flex-direction: column; gap: 4px; }
+        .row { display: flex; gap: 4px; justify-content: center; }
+        .cell {
+            width: var(--cell-size); height: var(--cell-size);
+            display: flex; justify-content: center; align-items: center;
+            font-size: var(--font-size-cell); position: relative; border-radius: 4px;
+            transition: all 0.3s;
+        }
+        .empty { background: transparent; }
+        
+        .h1 { background-color: var(--h1-color); box-shadow: 0 4px 0 var(--h1-shadow); margin-bottom: 4px; }
+        .h2 { background-color: var(--h2-color); box-shadow: 0 8px 0 var(--h2-shadow); margin-bottom: 8px; transform: translateY(-4px); }
+        .h3 { background-color: var(--h3-color); box-shadow: 0 12px 0 var(--h3-shadow); margin-bottom: 12px; transform: translateY(-8px); }
+        .h4 { background-color: var(--h4-color); box-shadow: 0 16px 0 var(--h4-shadow); margin-bottom: 16px; transform: translateY(-12px); }
+        
+        .target { border: 3px solid #1a5cff; box-sizing: border-box; }
+        .target.lit { background-color: #FACC15; border-color: #e6b800; }
+        
+        #robot {
+            position: absolute;
+            z-index: 10;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            font-size: var(--bot-size);
+            color: #ff3333;
+            transition: left 0.3s ease-in-out, top 0.3s ease-in-out, transform 0.2s ease-in-out;
+        }
+
+        .panel { 
+            width: 320px; display: flex; flex-direction: column; gap: 10px; 
+            box-sizing: border-box; flex-grow: 1;
+        }
+        .controls-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        
+        .btn {
+            padding: 10px; background-color: #555; color: white; border: none;
+            border-radius: 6px; cursor: pointer; font-size: 15px; text-align: left;
+            touch-action: manipulation; user-select: none; -webkit-tap-highlight-color: transparent;
+            min-height: 44px;
+        }
+        .btn:active { background-color: #777; transform: scale(0.98); } 
+        @media (hover: hover) { .btn:hover:not(:disabled) { background-color: #666; } }
+        .btn:disabled { cursor: not-allowed; opacity: 0.4; transform: none; }
+        
+        .btn-action { background-color: #4CAF50; text-align: center; font-weight: bold; font-size: 16px; }
+        .btn-action:active { background-color: #3e8e41; }
+        @media (hover: hover) { .btn-action:hover:not(:disabled) { background-color: #45a049; } }
+        
+        .btn-clear { background-color: #690000; text-align: center; }
+        @media (hover: hover) { .btn-clear:hover:not(:disabled) { background-color: #8b0000; } }
+        
+        .btn-nav { background-color: #1a5cff; color: white; border: none; padding: 10px 15px; border-radius: 6px; font-weight: bold; touch-action: manipulation;}
+        @media (hover: hover) { .btn-nav:hover:not(:disabled) { background-color: #3366ff; } }
+        .btn-nav:disabled { background-color: #555; opacity: 0.3; }
+
+        .repeat-controls {
+            background: #222; padding: 12px; border-radius: 6px; 
+            display: flex; flex-direction: column; gap: 8px;
+        }
+        .repeat-inputs { display: flex; gap: 8px; align-items: center; width: 100%; }
+        .repeat-inputs select {
+            flex-grow: 1; padding: 10px; background-color: #444; color: white;
+            border: 1px solid #555; border-radius: 6px; outline: none; font-family: inherit; font-size: 15px;
+        }
+        .repeat-inputs input {
+            width: 50px; text-align: center; padding: 10px; border-radius: 6px; 
+            border: 1px solid #555; background: #444; color: white; outline: none; font-size: 15px;
+        }
+        
+        #program-queue {
+            min-height: 150px; max-height: 250px; overflow-y: auto;
+            background-color: #222; padding: 10px; border-radius: 6px;
+            font-size: 14px; display: flex; flex-direction: column; gap: 5px;
+        }
+        .q-item { background-color: #444; padding: 10px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; }
+        .q-item .del { cursor: pointer; color: #ff5555; font-weight: bold; padding: 0 10px; font-size: 18px; }
+        .q-repeat { border-left: 5px solid #FACC15; background-color: #333; }
+        
+        .reset-all-container { margin-top: 15px; text-align: center; border-top: 1px solid #555; padding-top: 15px; }
+
+        @media (max-width: 768px) {
+            .container { flex-direction: column; align-items: center; padding: 15px; }
+            .panel { width: 100%; max-width: 400px; }
+            #board-container { width: 100%; padding: 15px 10px 30px 10px; }
+            .header { justify-content: space-between; }
+        }
+
+        @media (max-width: 400px) {
+            :root {
+                --cell-size: 38px;
+                --font-size-cell: 18px;
+                --bot-size: 22px;
+            }
+            .controls-grid { grid-template-columns: 1fr; }
+            .btn[onclick="addCmd('light')"] { grid-column: span 1 !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <button class="btn-nav" id="btn-prev" onclick="changeLevel(-1)">◀ กลับ</button>
+        <h2 id="level-title">ด่าน 1 / 20</h2>
+        <button class="btn-nav" id="btn-next" onclick="changeLevel(1)">ถัดไป ▶</button>
+    </div>
+
+    <div class="container">
+        <div id="board-container">
+            <div id="board"></div>
+        </div>
+
+        <div class="panel">
+            <div class="controls-grid">
+                <button class="btn" onclick="addCmd('forward')">⬆️ เดินหน้า</button>
+                <button class="btn" onclick="addCmd('jump')">⏫ กระโดด</button>
+                <button class="btn" onclick="addCmd('left')">↩️ เลี้ยวซ้าย</button>
+                <button class="btn" onclick="addCmd('right')">↪️ เลี้ยวขวา</button>
+                <button class="btn" style="grid-column: span 2;" onclick="addCmd('light')">💡 เปิดไฟ</button>
+            </div>
+
+            <div class="repeat-controls">
+                <div style="font-size: 13px; color: #aaa; font-weight: bold;">ฟังก์ชันทำซ้ำ</div>
+                <div class="repeat-inputs">
+                    <select id="repeat-cmd">
+                        <option value="forward">⬆️ เดินหน้า</option>
+                        <option value="jump">⏫ กระโดด</option>
+                        <option value="left">↩️ เลี้ยวซ้าย</option>
+                        <option value="right">↪️ เลี้ยวขวา</option>
+                        <option value="light">💡 เปิดไฟ</option>
+                    </select>
+                    <input type="number" id="repeat-count" value="2" min="2" max="10" inputmode="numeric">
+                    <span style="font-size: 14px;">รอบ</span>
+                </div>
+                <button class="btn" style="background:#b38f00; text-align: center; font-weight: bold;" onclick="addRepeatCmd()">🔁 นำเข้าคิวคำสั่ง</button>
+            </div>
+
+            <div id="program-queue"></div>
+            
+            <button class="btn btn-action" onclick="runProgram()">▶️ รันคำสั่งทั้งหมด</button>
+            <button class="btn btn-clear" onclick="resetGame(true)">🔄 ล้างคำสั่งเริ่มใหม่</button>
+            
+            <div class="reset-all-container">
+                <button class="btn" style="background-color: #800000; color: white; width: 100%; text-align: center; font-size: 13px;" onclick="resetAllProgress()">⚠️ ลบข้อมูลกลับไปเริ่มด่าน 1</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const levelsData = [
+            { map: ["11A"], start: {x:0, y:0, dir:1} }, 
+            { map: ["110","01A"], start: {x:0, y:0, dir:1} }, 
+            { map: ["111","001","00A"], start: {x:0, y:0, dir:1} }, 
+            { map: ["12B"], start: {x:0, y:0, dir:1} }, 
+            { map: ["21A"], start: {x:0, y:0, dir:1} }, 
+            { map: ["123C"], start: {x:0, y:0, dir:1} }, 
+            { map: ["321A"], start: {x:0, y:0, dir:1} }, 
+            { map: ["121A"], start: {x:0, y:0, dir:1} }, 
+            { map: ["11111A"], start: {x:0, y:0, dir:1} }, 
+            { map: ["111","101","A11"], start: {x:0, y:0, dir:1} }, 
+            { map: ["1212B"], start: {x:0, y:0, dir:1} }, 
+            { map: ["1100","0110","001A"], start: {x:0, y:0, dir:1} }, 
+            { map: ["1221","0B0A"], start: {x:0, y:0, dir:1} }, 
+            { map: ["123","402","C21"], start: {x:0, y:0, dir:1} }, 
+            { map: ["1200","0230","003C"], start: {x:0, y:0, dir:1} }, // ด่าน 15 ซ่อมเสร็จสมบูรณ์
+            { map: ["1111","0001","1111","1000","111A"], start: {x:0, y:0, dir:1} }, 
+            { map: ["1210","0121","001B"], start: {x:0, y:0, dir:1} },                
+            { map: ["1234","0001","1112","0003","111B"], start: {x:0, y:0, dir:1} }, 
+            { map: ["10001","20002","30003","4111A"], start: {x:0, y:0, dir:2} },    
+            { map: ["1200","0340","0012","000B"], start: {x:0, y:0, dir:1} }         
+        ];
+
+        // ===================================================
+        // ⏱️ ระบบตรวจสอบเวลาล่าช้าอัตโนมัติ (4 ชั่วโมง)
+        // ===================================================
+        function checkSessionTimeout() {
+            const lastActive = localStorage.getItem('codingBotLastActive');
+            const now = Date.now();
+            const fourHoursInMs = 4 * 60 * 60 * 1000; // 4 ชั่วโมงในหน่วยมิลลิวินาที
+
+            if (lastActive && (now - parseInt(lastActive) > fourHoursInMs)) {
+                // หากเกิน 4 ชั่วโมง ให้ทำการล้างข้อมูลทั้งหมดในเครื่องทันที
+                localStorage.removeItem('codingBotMaxLevel');
+                localStorage.removeItem('codingBotSavedLevel');
+            }
+            // อัปเดตเวลาล่าสุดที่ผู้ใช้งานเปิดหรือเล่นเว็บ
+            localStorage.setItem('codingBotLastActive', now.toString());
+        }
+        
+        // รันฟังก์ชันตรวจสอบเวลาทันทีที่เปิดหน้าเว็บขึ้นมา
+        checkSessionTimeout();
+
+        // ดึงข้อมูลด่านหลังจากตรวจเรื่องเวลาเสร็จแล้ว
+        let maxLevel = parseInt(localStorage.getItem('codingBotMaxLevel')) || 0;
+        let currentLevel = parseInt(localStorage.getItem('codingBotSavedLevel')) || maxLevel;
+        
+        if (maxLevel >= levelsData.length) maxLevel = levelsData.length - 1;
+        if (currentLevel > maxLevel) currentLevel = maxLevel;
+
+        let board = [], targets = [], robot = {}, isLit = false;
+        let program = [], isRunning = false;
+
+        const cmdText = { 'forward': '⬆️ เดินหน้า', 'jump': '⏫ กระโดด', 'left': '↩️ เลี้ยวซ้าย', 'right': '↪️ เลี้ยวขวา', 'light': '💡 เปิดไฟ' };
+        const robotIcons = ['▲', '▶', '▼', '◀'];
+
+        // อัปเดตเวลา Last Active ทุกครั้งที่นักเรียนกดสั่งการหรือเคลื่อนไหวในเกม
+        function updateActivity() {
+            localStorage.setItem('codingBotLastActive', Date.now().toString());
+        }
+
+        function loadLevel(index) {
+            currentLevel = index;
+            localStorage.setItem('codingBotSavedLevel', currentLevel);
+            document.getElementById('level-title').innerText = `ด่าน ${currentLevel + 1} / ${levelsData.length}`;
+            
+            const btnPrev = document.getElementById('btn-prev');
+            const btnNext = document.getElementById('btn-next');
+            btnPrev.disabled = (currentLevel === 0);
+            btnNext.disabled = (currentLevel >= maxLevel);
+
+            const data = levelsData[index];
+            board = []; targets = []; isLit = false;
+            for (let y = 0; y < data.map.length; y++) {
+                let row = [];
+                for (let x = 0; x < data.map[y].length; x++) {
+                    let char = data.map[y][x];
+                    if (char === '0') row.push(0);
+                    else if (char >= '1' && char <= '4') row.push(parseInt(char));
+                    else if (char >= 'A' && char <= 'E') {
+                        let h = char.charCodeAt(0) - 64;
+                        row.push(h);
+                        targets.push({x, y});
+                    }
+                }
+                board.push(row);
+            }
+            robot = { ...data.start };
+            resetGame(true);
+        }
+
+        function changeLevel(step) {
+            if (isRunning) return;
+            updateActivity();
+            let next = currentLevel + step;
+            if (next >= 0 && next <= maxLevel && next < levelsData.length) {
+                loadLevel(next);
+            }
+        }
+
+        function resetAllProgress() {
+            if(isRunning) return;
+            if(confirm('แน่ใจหรือไม่? หากกด "ตกลง" ความคืบหน้าทั้งหมดจะหายไปและกลับไปเริ่มด่าน 1 ใหม่')) {
+                maxLevel = 0;
+                localStorage.setItem('codingBotMaxLevel', 0);
+                localStorage.setItem('codingBotSavedLevel', 0);
+                updateActivity();
+                loadLevel(0);
+            }
+        }
+
+        function drawBoard() {
+            const bDiv = document.getElementById('board');
+            bDiv.innerHTML = '';
+            for (let y = 0; y < board.length; y++) {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'row';
+                for (let x = 0; x < board[y].length; x++) {
+                    const cell = document.createElement('div');
+                    let h = board[y][x];
+                    
+                    if (h === 0) cell.className = 'cell empty';
+                    else {
+                        cell.className = `cell h${h >= 4 ? 4 : h}`;
+                        if (targets.some(t => t.x === x && t.y === y)) {
+                            cell.classList.add('target');
+                            if (isLit) cell.classList.add('lit');
+                        }
+                    }
+
+                    if (x === robot.x && y === robot.y) {
+                        const bot = document.createElement('div');
+                        bot.id = 'robot';
+                        bot.innerText = robotIcons[robot.dir];
+                        cell.appendChild(bot);
+                    }
+                    rowDiv.appendChild(cell);
+                }
+                bDiv.appendChild(rowDiv);
+            }
+        }
+
+        function addCmd(cmd) {
+            if (isRunning) return;
+            updateActivity();
+            program.push({ type: 'single', val: cmd });
+            renderQueue();
+        }
+
+        function addRepeatCmd() {
+            if (isRunning) return;
+            updateActivity();
+            const cmd = document.getElementById('repeat-cmd').value;
+            const count = parseInt(document.getElementById('repeat-count').value);
+            program.push({ type: 'repeat', val: cmd, count: count });
+            renderQueue();
+        }
+
+        function delCmd(idx) {
+            if (isRunning) return;
+            updateActivity();
+            program.splice(idx, 1);
+            renderQueue();
+        }
+
+        function renderQueue() {
+            const qDiv = document.getElementById('program-queue');
+            qDiv.innerHTML = '';
+            program.forEach((item, idx) => {
+                if (item.type === 'single') {
+                    qDiv.innerHTML += `<div class="q-item">${cmdText[item.val]} <span class="del" onclick="delCmd(${idx})">✖</span></div>`;
+                } else if (item.type === 'repeat') {
+                    qDiv.innerHTML += `<div class="q-item q-repeat">🔁 ซ้ำ [ ${cmdText[item.val]} ] x ${item.count} <span class="del" onclick="delCmd(${idx})">✖</span></div>`;
+                }
+            });
+            qDiv.scrollTop = qDiv.scrollHeight;
+        }
+
+        function resetGame(clearProgram = false) {
+            if (isRunning) return;
+            robot = { ...levelsData[currentLevel].start };
+            isLit = false;
+            if (clearProgram) {
+                program = [];
+                renderQueue();
+            }
+            drawBoard();
+        }
+
+        const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+        async function runProgram() {
+            if (isRunning || program.length === 0) return;
+            isRunning = true;
+            updateActivity();
+            
+            robot = { ...levelsData[currentLevel].start };
+            isLit = false;
+            drawBoard();
+            await sleep(400);
+
+            let execQueue = [];
+            program.forEach(p => {
+                if (p.type === 'single') {
+                    execQueue.push(p.val);
+                } else if (p.type === 'repeat') {
+                    for(let i = 0; i < p.count; i++) execQueue.push(p.val);
+                }
+            });
+
+            for (let cmd of execQueue) {
+                let tx = robot.x, ty = robot.y;
+                if (robot.dir === 0) ty--; else if (robot.dir === 1) tx++; else if (robot.dir === 2) ty++; else if (robot.dir === 3) tx--;
+                
+                let validMove = ty >= 0 && ty < board.length && tx >= 0 && tx < board[0].length;
+                let curH = board[robot.y][robot.x];
+                let nextH = validMove ? board[ty][tx] : 0;
+
+                if (cmd === 'forward') {
+                    if (validMove && nextH === curH && nextH !== 0) { robot.x = tx; robot.y = ty; }
+                } else if (cmd === 'jump') {
+                    if (validMove && nextH !== 0 && (nextH === curH + 1 || nextH < curH)) { robot.x = tx; robot.y = ty; }
+                } else if (cmd === 'left') robot.dir = (robot.dir + 3) % 4;
+                else if (cmd === 'right') robot.dir = (robot.dir + 1) % 4;
+                else if (cmd === 'light') {
+                    if (targets.some(t => t.x === robot.x && t.y === robot.y)) isLit = true;
+                }
+
+                drawBoard();
+                await sleep(400);
+            }
+
+            if (isLit) {
+                setTimeout(() => {
+                    alert('เก่งมาก! ผ่านด่านแล้ว 🎉');
+                    if (currentLevel === maxLevel && maxLevel < levelsData.length - 1) {
+                        maxLevel++;
+                        localStorage.setItem('codingBotMaxLevel', maxLevel);
+                    }
+                    if (currentLevel < levelsData.length - 1) {
+                        loadLevel(currentLevel + 1);
+                    } else {
+                        alert('🏆 ยินดีด้วย! คุณเก่งมาก สามารถพิชิตมหากาพย์ได้ครบทั้ง 20 ด่านแล้วครับ!');
+                    }
+                }, 200);
+            } else {
+                setTimeout(() => alert('ยังไม่สำเร็จ ลองวิเคราะห์ลำดับคำสั่งดูใหม่นะ'), 200);
+                resetGame(false);
+            }
+            isRunning = false;
+        }
+
+        loadLevel(currentLevel);
+    </script>
+</body>
+</html>
